@@ -1,0 +1,5 @@
+policy: "LFU"          # LRU | LFU | TTL
+max_bytes: 10485760    # 10 MB
+default_ttl: 60        # seconds
+origin_base_url: "http://localhost:9000"
+request_timeout: 10
