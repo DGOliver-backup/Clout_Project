@@ -95,12 +95,10 @@ async def proxy(path: str, request: Request):
     start_time = time.perf_counter()
     key = make_cache_key(request, path)
 
-    # 嘗試從 cache 取得 entry
     entry, reason = cache.get(key)
     total_latency_ms = (time.perf_counter() - start_time) * 1000
 
     if entry is not None:
-        # HIT
         cache.record_hit_latency(total_latency_ms)
         cache._log_request(
             key=key,
@@ -116,11 +114,9 @@ async def proxy(path: str, request: Request):
             status_code=entry.status_code,
             media_type=entry.content_type,
         )
-        # 原始 origin headers
         for h, v in entry.origin_headers.items():
             response.headers[h] = v
 
-        # 核心 cache headers
         stats = cache.stats()
         response.headers["X-Cache"] = "HIT"
         response.headers["X-Cache-Policy"] = cache.policy
@@ -139,7 +135,6 @@ async def proxy(path: str, request: Request):
         response.headers["X-Origin-Latency-Ms"] = "0.000"
         return response
 
-    # MISS → fetch origin
     origin_url = f"{settings.origin_base_url.rstrip('/')}/{path}"
     if request.url.query:
         origin_url += f"?{request.url.query}"
@@ -198,7 +193,6 @@ async def proxy(path: str, request: Request):
     for h, v in response_headers.items():
         response.headers[h] = v
 
-    # 核心 cache headers
     stats = cache.stats()
     response.headers["X-Cache"] = "MISS"
     response.headers["X-Cache-Policy"] = cache.policy
