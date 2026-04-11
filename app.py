@@ -90,16 +90,17 @@ async def change_policy(policy_name: str):
     cache.set_policy(policy_name)
     return {"status": "ok", "policy": cache.policy}
 
-
 @app.api_route("/{path:path}", methods=["GET"])
 async def proxy(path: str, request: Request):
     start_time = time.perf_counter()
     key = make_cache_key(request, path)
 
+    # 嘗試從 cache 取得 entry
     entry, reason = cache.get(key)
+    total_latency_ms = (time.perf_counter() - start_time) * 1000
 
     if entry is not None:
-        total_latency_ms = (time.perf_counter() - start_time) * 1000
+        # HIT
         cache.record_hit_latency(total_latency_ms)
         cache._log_request(
             key=key,
@@ -115,9 +116,12 @@ async def proxy(path: str, request: Request):
             status_code=entry.status_code,
             media_type=entry.content_type,
         )
+        # 原始 origin headers
         for h, v in entry.origin_headers.items():
             response.headers[h] = v
 
+        # 核心 cache headers
+        stats = cache.stats()
         response.headers["X-Cache"] = "HIT"
         response.headers["X-Cache-Policy"] = cache.policy
         response.headers["X-Cache-Key"] = key
@@ -126,10 +130,16 @@ async def proxy(path: str, request: Request):
             str(max(0, round(entry.expires_at - time.time(), 3)))
             if entry.expires_at is not None else "none"
         )
+        response.headers["X-Cache-Usage"] = str(round(cache.used_bytes / cache.max_bytes, 2))
+        response.headers["X-Cache-Hits"] = str(stats["hits"])
+        response.headers["X-Cache-Misses"] = str(stats["misses"])
+        response.headers["X-Cache-Object-Count"] = str(stats["object_count"])
+        response.headers["X-Cache-Evictions"] = str(stats["evictions"])
         response.headers["X-Response-Time-Ms"] = f"{total_latency_ms:.3f}"
         response.headers["X-Origin-Latency-Ms"] = "0.000"
         return response
 
+    # MISS → fetch origin
     origin_url = f"{settings.origin_base_url.rstrip('/')}/{path}"
     if request.url.query:
         origin_url += f"?{request.url.query}"
@@ -188,11 +198,18 @@ async def proxy(path: str, request: Request):
     for h, v in response_headers.items():
         response.headers[h] = v
 
+    # 核心 cache headers
+    stats = cache.stats()
     response.headers["X-Cache"] = "MISS"
     response.headers["X-Cache-Policy"] = cache.policy
     response.headers["X-Cache-Key"] = key
     response.headers["X-Cache-Reason"] = final_reason
     response.headers["X-Cache-TTL"] = str(ttl_seconds) if ttl_seconds is not None else "default"
+    response.headers["X-Cache-Usage"] = str(round(cache.used_bytes / cache.max_bytes, 2))
+    response.headers["X-Cache-Hits"] = str(stats["hits"])
+    response.headers["X-Cache-Misses"] = str(stats["misses"])
+    response.headers["X-Cache-Object-Count"] = str(stats["object_count"])
+    response.headers["X-Cache-Evictions"] = str(stats["evictions"])
     response.headers["X-Response-Time-Ms"] = f"{total_latency_ms:.3f}"
     response.headers["X-Origin-Latency-Ms"] = f"{origin_latency_ms:.3f}"
 

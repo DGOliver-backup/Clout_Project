@@ -195,7 +195,7 @@ class CacheStore:
         hit_rate = (self.hits / self.requests) if self.requests else 0.0
         object_count = len(self.entries)
         avg_object_size = (self.used_bytes / object_count) if object_count else 0.0
-        occupancy_pct = (self.used_bytes / self.max_bytes * 100) if self.max_bytes else 0.0
+        occupancy_ratio = (self.used_bytes / self.max_bytes) if self.max_bytes else 0.0
 
         avg_hit_latency = (
             self.total_hit_latency_ms / self.hit_latency_count
@@ -226,38 +226,13 @@ class CacheStore:
             "bytes_served_from_cache": self.bytes_served_from_cache,
             "bytes_fetched_from_origin": self.bytes_fetched_from_origin,
             "average_object_size": round(avg_object_size, 2),
-            "cache_occupancy_percent": round(occupancy_pct, 2),
+            "cache_usage": round(occupancy_ratio, 2),
             "average_hit_latency_ms": round(avg_hit_latency, 3),
             "average_miss_latency_ms": round(avg_miss_latency, 3),
             "average_origin_latency_ms": round(avg_origin_latency, 3),
             "per_key_hits": self.per_key_hits,
             "per_key_misses": self.per_key_misses,
         }
-
-    def list_entries(self) -> List[dict]:
-        result = []
-        now = time.time()
-
-        for key, entry in self.entries.items():
-            ttl_remaining = None
-            if entry.expires_at is not None:
-                ttl_remaining = max(0, round(entry.expires_at - now, 2))
-
-            result.append(
-                {
-                    "key": key,
-                    "size": entry.size,
-                    "content_type": entry.content_type,
-                    "created_at": entry.created_at,
-                    "last_access": entry.last_access,
-                    "access_count": entry.access_count,
-                    "hit_count": entry.hit_count,
-                    "miss_count": entry.miss_count,
-                    "expires_at": entry.expires_at,
-                    "ttl_remaining_seconds": ttl_remaining,
-                }
-            )
-        return result
 
     def get_logs(self) -> List[dict]:
         return self.request_logs
