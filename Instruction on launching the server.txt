@@ -1,0 +1,54 @@
+With the codes ready and the testing files generated, the steps in this file can be done to launch the server.
+
+1. Check if there is LabRole.
+	In AWS, search for IAM, then find LabRole in the Roles. This ensures the code can be executed and have access to the data files in the buckets.
+
+2. Create Security Group
+	In AWS, find Security Groups and Create Security Group.
+	Name this new security group as CacheProject-SG
+	Add inbound rules for SSH (22), Custom TCP (8000), and All ICMP - IPv4 (all). All source should be 0.0.0.0/0
+
+3. Create S3 bucket
+	Create the S3 bucket and name it "web-cache-dataset-129".
+	Upload the generated files within one folder. By default, it will be a folder called "test_Data" containing 200 files
+	Need to allow the public access!
+
+4. Launch EC2 instance
+	Back to EC2, launch instance with name to be "Cache-Proxy-Server".
+	Choose AMI to be Ubuntu and instance type to be t2.micro
+	Key is vockey
+	Network settings will be CacheProject-SG created in step 2.
+	Choose the LabRole
+	Launch instance
+
+5. Connect to the instance in the Instance page
+	Run the commands below:
+		#Update and install the packages
+		sudo apt update
+		sudo apt install python3-pip python3-venv -y
+		
+		#Make the directory 
+		mkdir cache_project
+		cd cache_project
+		
+		#Activate virtual environment
+		python3 -m venv venv
+		source venv/bin/activate
+		
+		#Copy all the codes into the server
+		#Use the command below to copy and past each code file into the server
+		nano config.yml #Replace the name to any of the files needs to be uploaded into the server
+		#Copy and paste codes
+		#Control+O, then Enter, then Control + X to exit
+		#For the requirement.txt, upload it, then run the command below:
+			pip install -r requirements.txt
+
+		#Finally, initialize the virtual environment
+		python3 -m uvicorn app:app --host 0.0.0.0 --port 8000
+		
+		#Then the server is launched
+		#Additionally, we have manually added a delay between the S3 and the EC2 instance
+		ip addr #Chekc the Primary Network Interface name, assume the name is eth0 in this code
+		sudo tc qdisc add dev eth0 root netem delay 200ms
+
+Also, do not forget to change the address in config.yml if needed
