@@ -188,12 +188,18 @@ async def proxy(path: str, request: Request):
     for h, v in response_headers.items():
         response.headers[h] = v
 
-    response.headers["X-Cache"] = "MISS"
-    response.headers["X-Cache-Policy"] = cache.policy
-    response.headers["X-Cache-Key"] = key
-    response.headers["X-Cache-Reason"] = final_reason
-    response.headers["X-Cache-TTL"] = str(ttl_seconds) if ttl_seconds is not None else "default"
-    response.headers["X-Response-Time-Ms"] = f"{total_latency_ms:.3f}"
-    response.headers["X-Origin-Latency-Ms"] = f"{origin_latency_ms:.3f}"
+    stats = cache.stats()
+    response.headers["X-Cache-Usage"] = str(round(cache.used_bytes / cache.max_bytes, 2) if cache.max_bytes else 0.0)
+    response.headers["X-Cache-Occupancy-Percent"] = str(stats["cache_occupancy_percent"])
+    response.headers["X-Cache-Bytes-Used"] = str(stats["bytes_used"])
+    response.headers["X-Cache-Max-Bytes"] = str(stats["max_bytes"])
+    response.headers["X-Cache-Object-Count"] = str(stats["object_count"])
+    response.headers["X-Cache-Hit-Rate"] = str(stats["hit_rate"])
+    response.headers["X-Cache-Hits"] = str(stats["hits"])
+    response.headers["X-Cache-Misses"] = str(stats["misses"])
+    response.headers["X-Cache-Evictions"] = str(stats["evictions"])
+    response.headers["X-Cache-Expired-Removals"] = str(stats["expired_removals"])
+    response.headers["X-Cache-Oversize-Skips"] = str(stats["oversize_skips"])
+    response.headers["X-Cache-Origin-Fetches"] = str(stats["origin_fetches"])
 
     return response
