@@ -1,5 +1,5 @@
 policy: "LFU"          # LRU | LFU | TTL
-max_bytes: 10485760    # 10 MB
+max_bytes: 41943040    # 40 MB, for case of 10MB, use 10485760
 default_ttl: 60        # seconds
-origin_base_url: "http://localhost:9000"
+origin_base_url: "http://web-cache-dataset-129.s3.amazonaws.com"
 request_timeout: 10
