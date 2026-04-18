@@ -6,7 +6,9 @@ import json
 from typing import List
 import os
 
-PROXY_URL = "http://54.225.17.231:8000"
+#Allow the input of IP when executing this file, it has been set to 127.0.0.1 bu default
+PROXY_IP = os.getenv("PROXY_IP", "127.0.0.1")
+PROXY_URL = f"http://{PROXY_IP}:8000"
 POLICIES = ["LRU", "LFU", "TTL"]
 
 SMALL_FILES = [f"small{i}.txt" for i in range(1, 111)]
