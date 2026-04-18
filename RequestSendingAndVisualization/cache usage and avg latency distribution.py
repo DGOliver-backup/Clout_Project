@@ -5,7 +5,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import plotly.io as pio
 
-# --- 实验参数映射表 ---
+# Config
 task_configs = {
     "1.1": {"main": "Workload: Small-heavy", "desc": "85% Small Files | Cache: 40MB | Batch: 5"},
     "1.2": {"main": "Workload: Uniform", "desc": "33% Small/Med/Large | Cache: 40MB | Batch: 5"},
@@ -44,18 +44,16 @@ def create_policy_figure(file_id):
         df["UsagePct"] = df["cache_usage_float"].astype(float) * 100
         df["Latency"] = df["latency_ms"].astype(float)
         
-        # --- 1. 直方图 (左轴) ---
         fig.add_trace(go.Histogram(
             x=df["UsagePct"],
             name=f"{policy} Distribution",
             xbins=dict(start=0, end=100, size=5),
             marker_color=policy_colors[policy],
             opacity=0.3,
-            legendgroup=policy, # 同组联动
-            showlegend=True if i == 0 else False # 仅第一行显示图例，防止重复
+            legendgroup=policy, 
+            showlegend=True if i == 0 else False 
         ), row=i+1, col=1, secondary_y=False)
         
-        # --- 2. 平均延迟折线 (右轴) ---
         bins = np.arange(0, 105, 5)
         df['bin'] = pd.cut(df['UsagePct'], bins=bins, labels=bins[:-1] + 2.5) 
         bin_means = df.groupby('bin', observed=True)['Latency'].mean().reset_index()
@@ -72,7 +70,6 @@ def create_policy_figure(file_id):
             showlegend=True if i == 0 else False
         ), row=i+1, col=1, secondary_y=True)
 
-    # 布局美化
     full_title = f"<span style='font-size:24px;'>{config['main']}</span><br><span style='font-size:14px; color:gray;'>{config['desc']}</span>"
     
     fig.update_layout(
@@ -90,7 +87,6 @@ def create_policy_figure(file_id):
         )
     )
 
-    # 轴标签设置
     fig.update_xaxes(title_text="Cache Usage (%)", range=[0, 100], row=3, col=1)
     for row in range(1, 4):
         fig.update_yaxes(title_text="Request Count", secondary_y=False, row=row, col=1)
@@ -98,7 +94,6 @@ def create_policy_figure(file_id):
 
     return fig
 
-# --- 批量渲染 ---
 output_file = "cache usage and avg latency distribution.html"
 file_ids = ["1.1", "1.2", "1.3", "2.2", "3.2"]
 
@@ -110,7 +105,6 @@ with open(output_file, "w", encoding="utf-8") as f:
     for fid in file_ids:
         fig = create_policy_figure(fid)
         if fig:
-            # 导出为 div 段落
             chart_div = pio.to_html(fig, full_html=False, include_plotlyjs='cdn')
             f.write(f"<div style='margin-top:50px; border-bottom:2px solid #eee; padding-bottom:50px;'>{chart_div}</div>")
             
