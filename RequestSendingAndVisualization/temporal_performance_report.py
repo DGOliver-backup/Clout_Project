@@ -5,7 +5,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import plotly.io as pio
 
-# --- 1. 实验场景配置 ---
+# Config
 files = ["1.1", "1.2", "1.3", "2.2", "3.2"]
 exp_meta = {
     "1.1": "Workload: Small-heavy (85% small)",
@@ -20,7 +20,6 @@ policies = ["LRU", "LFU", "TTL"]
 def create_temporal_fig(file_id):
     desc = exp_meta.get(file_id, "General Experiment")
     
-    # 创建画布
     fig = make_subplots(specs=[[{"secondary_y": True}]])
 
     try:
@@ -41,8 +40,7 @@ def create_temporal_fig(file_id):
             
             color = policy_colors.get(policy)
             
-            # --- Cache Usage (左轴 - 实线) ---
-            # 使用滑动平均平滑数据，window=20
+            # Cache Usage (left axis)
             ma_usage = p_df["UsagePct"].rolling(window=20, min_periods=1).mean()
             fig.add_trace(go.Scatter(
                 x=p_df["RequestIdx"], y=ma_usage, 
@@ -52,7 +50,7 @@ def create_temporal_fig(file_id):
                 legendgroup=policy,
             ), secondary_y=False)
             
-            # --- Latency (右轴 - 虚线) ---
+            #  Latency (right axis)
             ma_latency = p_df["ClientLatency"].rolling(window=20, min_periods=1).mean()
             fig.add_trace(go.Scatter(
                 x=p_df["RequestIdx"], y=ma_latency, 
@@ -62,7 +60,6 @@ def create_temporal_fig(file_id):
                 legendgroup=policy,
             ), secondary_y=True)
 
-        # 布局美化
         fig.update_layout(
             title=dict(text=f"<b>Experiment {file_id}</b>: {desc}", x=0.5, font=dict(size=18)),
             height=500, width=1100,
@@ -85,7 +82,6 @@ def create_temporal_fig(file_id):
         print(f"Warning: {file_id}.json not found.")
         return None
 
-# --- 2. 批量渲染与合并 ---
 output_file = "temporal_performance_report.html"
 
 with open(output_file, "w", encoding="utf-8") as f:
