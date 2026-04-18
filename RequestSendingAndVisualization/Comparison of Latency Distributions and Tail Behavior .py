@@ -4,7 +4,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import plotly.io as pio
 
-# --- 1. 配置 ---
+# Config 
 files = ["1.1", "1.2", "1.3", "2.2", "3.2"]
 target_policies = ["LRU", "LFU", "TTL"]
 colors = {"LRU": "#AB63FA", "LFU": "#EF553B", "TTL": "#00CC96"}
@@ -22,18 +22,19 @@ def create_latency_fig(file_id):
     fig = make_subplots(
         rows=3, cols=1, 
         subplot_titles=[f"<b>{p}</b> Latency Distribution" for p in target_policies],
-        shared_xaxes=False, # 关闭共享，以便针对高延迟实验自动缩放
+        shared_xaxes=False,
         vertical_spacing=0.1
     )
 
-    max_p99_in_file = 0 # 用于动态调整 X 轴
+    max_p99_in_file = 0  # track max P99
 
     try:
         with open(f"{file_id}.json", "r") as f:
             data = json.load(f)
             
         for i, policy_name in enumerate(target_policies):
-            if policy_name not in data: continue
+            if policy_name not in data: 
+                continue
             
             reqs = data[policy_name].get("requests", [])
             latencies = [float(r["latency_ms"]) for r in reqs if r.get("status_code") == 200]
@@ -42,7 +43,7 @@ def create_latency_fig(file_id):
                 p99 = np.percentile(latencies, 99)
                 max_p99_in_file = max(max_p99_in_file, p99)
                 
-                # 添加直方图
+                # histogram
                 fig.add_trace(
                     go.Histogram(
                         x=latencies,
@@ -55,10 +56,10 @@ def create_latency_fig(file_id):
                     row=i+1, col=1
                 )
                 
-                # 绘制 P99 虚线
+                # P99 line
                 fig.add_vline(
                     x=p99, 
-                    line_width=3, # 加粗
+                    line_width=3,
                     line_dash="dash", 
                     line_color="red",
                     annotation_text=f"P99: {int(p99)}ms", 
@@ -67,8 +68,7 @@ def create_latency_fig(file_id):
                     row=i+1, col=1
                 )
 
-        # --- 动态 X 轴逻辑 ---
-        # 如果是 3.2 且延迟很高，自动放宽坐标轴；否则默认 4000ms
+        # dynamic x-axis
         x_limit = max(4000, max_p99_in_file * 1.2)
         
         fig.update_layout(
@@ -87,19 +87,18 @@ def create_latency_fig(file_id):
     except FileNotFoundError:
         return None
 
-# --- 2. 渲染合并 ---
+#  Render report 
 output_file = "fixed_latency_p99_report.html"
 with open(output_file, "w", encoding="utf-8") as f:
     f.write("<html><head><meta charset='utf-8' /></head><body style='background:#f4f7f9;'>")
     f.write("<div style='max-width:1100px; margin:auto; background:white; padding:20px;'>")
     f.write("<h1 style='text-align:center;'>Enhanced Latency Tail Analysis</h1>")
-    f.write("<p style='text-align:center;'>Red dashed lines represent the 99th percentile (P99).</p>")
+    f.write("<p style='text-align:center;'>Red dashed lines = 99th percentile (P99).</p>")
     
     for fid in files:
         fig = create_latency_fig(fid)
         if fig:
             f.write(pio.to_html(fig, full_html=False, include_plotlyjs='cdn'))
-            f.write("<div style='height:100px;'></div>") # 间隔
+            f.write("<div style='height:100px;'></div>")
             
     f.write("</div></body></html>")
-
