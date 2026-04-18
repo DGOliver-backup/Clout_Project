@@ -15,8 +15,8 @@ Our project is modularized into three main components, reflecting our team's wor
 
 To run this artifact seamlessly, you will need:
 1. Local Environment: Python 3.9+ with `pip` installed. Unix-based OS (Linux/macOS) is recommended for the automation script.
-2. AWS EC2 Instance: An active Ubuntu/Amazon Linux EC2 instance.
-3. SSH Access: The `.pem` key file and SSH username (e.g., `ubuntu` or `ec2-user`) for your EC2 instance.
+2. AWS EC2 Instance: An active Ubuntu/Amazon Linux EC2 instance as the Origin Server.
+3. Connectivity: Ensure the EC2 Security Group allows inbound traffic on the designated port (e.g., 8000) from your local IP.
 4. AWS IAM Role (Crucial Security Note): We adhere to AWS security best practices. The proxy server does not use hardcoded Access Keys. Please ensure your EC2 instance is attached to an IAM Role with Amazon S3 Read Access so it can fetch the origin files.
 
 ---
@@ -43,11 +43,11 @@ To ensure maximum reproducibility and a fully portable workflow, we have provide
   ./run_all.sh
 
 4. Follow the on-screen prompts:
-  The script will ask for your EC2 Public IP, SSH Username, and the path to your .pem file.
+  The script will ask for your EC2 Public IP and SSH credentials.
   What happens next?
-  Upload: The script uses scp to push the server code to your EC2 instance.
-  Deploy: It uses ssh to install dependencies and start the proxy server in the background.
-  Test: It automatically launches the local workload generator (workload.py) against your cloud server, testing LRU, LFU, and TTL policies sequentially.
+  Remote Check: The script verifies that the Origin Server is active on your AWS EC2 instance.
+  Local Proxy Startup: The script initializes the app.py proxy on your localhost (127.0.0.1:8000), configured to fetch MISSing data from the AWS EC2 IP.
+  Automated Testing: It launches the workload.py generator, which sends requests to the Local Proxy to evaluate LRU, LFU, and TTL policies..
 
 5. View Results:
   Once finished, the experiment data will be saved locally in experiment_results.json, and visualization charts (e.g., hit rates, latency) will be generated in the RequestSendingAndVisualization/ folder.
