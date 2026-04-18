@@ -18,7 +18,7 @@ LARGE_FILES = [f"large{i}.txt" for i in range(1, 21)]
 FILES = SMALL_FILES + MEDIUM_FILES + LARGE_FILES
 REQUEST_COUNT = 1000
 
-# 機率分配
+# workload distribution
 p_small_total = 0.33
 p_medium_total = 0.33
 p_large_total = 0.33
@@ -32,7 +32,7 @@ probs = (
 probs = np.array(probs)
 probs /= probs.sum()
 
-# 固定 workload
+# Fixed workload for all policies
 np.random.seed(42)
 FIXED_WORKLOAD = np.random.choice(FILES, size=REQUEST_COUNT, p=probs).tolist()
 
@@ -50,9 +50,8 @@ def to_int(value, default=0):
     except (TypeError, ValueError):
         return default
 
-
+# Record whole Headers
 async def fetch_file(client: httpx.AsyncClient, filename: str):
-    """單次抓取，記錄完整 response header 屬性"""
     start = time.perf_counter()
 
     try:
@@ -67,16 +66,12 @@ async def fetch_file(client: httpx.AsyncClient, filename: str):
             "url": url,
             "status_code": resp.status_code,
             "latency_ms": round(latency, 3),
-
-            # 基本 response headers
             "content_length": to_int(headers.get("content-length")),
             "content_type": headers.get("content-type"),
             "last_modified": headers.get("last-modified"),
             "etag": headers.get("etag"),
             "date": headers.get("date"),
             "server": headers.get("server"),
-
-            # Cache 相關 headers
             "cache": headers.get("x-cache"),
             "cache_policy": headers.get("x-cache-policy"),
             "cache_key": headers.get("x-cache-key"),
@@ -92,7 +87,7 @@ async def fetch_file(client: httpx.AsyncClient, filename: str):
             "response_time_ms": to_float(headers.get("x-response-time-ms")),
             "origin_latency_ms": to_float(headers.get("x-origin-latency-ms")),
 
-            # 整包 headers 全部保留
+
             "headers": headers,
         }
 
@@ -103,7 +98,7 @@ async def fetch_file(client: httpx.AsyncClient, filename: str):
             "error": str(e),
         }
 
-
+# Concurrency control
 async def run_parallel_workload(policy: str, workload: List[str]):
     batch_size = 5
     results = []
@@ -120,7 +115,7 @@ async def run_parallel_workload(policy: str, workload: List[str]):
 
             current_sent = min(i + batch_size, len(workload))
             if current_sent % 10 == 0 or current_sent == len(workload):
-                print(f"   📤 Progress: {current_sent}/{len(workload)} requests processed...")
+                print(f"  Progress: {current_sent}/{len(workload)} requests processed...")
 
             if current_sent < len(workload):
                 await asyncio.sleep(1)
@@ -129,7 +124,7 @@ async def run_parallel_workload(policy: str, workload: List[str]):
 
 
 def set_policy(policy: str):
-    print(f"\n🔄 Switching policy to: {policy}")
+    print(f"\n Switching policy to: {policy}")
     httpx.post(f"{PROXY_URL}/cache/clear", timeout=10.0)
     httpx.post(f"{PROXY_URL}/cache/policy/{policy}", timeout=10.0)
 
@@ -152,28 +147,28 @@ async def main():
             "requests": results,
         }
 
-        print(f"📊 {policy} Hit Rate: {stats.get('hit_rate', 0):.2%}")
-        print(f"📊 Avg Hit Latency: {stats.get('average_hit_latency_ms', 0):.2f}ms")
-        print(f"📊 Avg Miss Latency: {stats.get('average_miss_latency_ms', 0):.2f}ms")
-        print(f"📊 Avg Origin Latency: {stats.get('average_origin_latency_ms', 0):.2f}ms")
-        print(f"📊 Origin Fetches: {stats.get('origin_fetches', 0)}")
-        print(f"📊 Evictions: {stats.get('evictions', 0)}")
-        print(f"📊 Cache Usage: {stats.get('cache_usage', 0):.2f}")
+        print(f" {policy} Hit Rate: {stats.get('hit_rate', 0):.2%}")
+        print(f" Avg Hit Latency: {stats.get('average_hit_latency_ms', 0):.2f}ms")
+        print(f" Avg Miss Latency: {stats.get('average_miss_latency_ms', 0):.2f}ms")
+        print(f" Avg Origin Latency: {stats.get('average_origin_latency_ms', 0):.2f}ms")
+        print(f" Origin Fetches: {stats.get('origin_fetches', 0)}")
+        print(f" Evictions: {stats.get('evictions', 0)}")
+        print(f" Cache Usage: {stats.get('cache_usage', 0):.2f}")
 
     with open("experiment_results.json", "w", encoding="utf-8") as f:
         json.dump(all_results, f, indent=2, ensure_ascii=False)
 
-    print("\n✅ Experiment completed. Results saved to experiment_results.json")
+    print("\n Experiment completed. Results saved to experiment_results.json")
 
 
 if __name__ == "__main__":
     asyncio.run(main())
 
-    print("\n📊 Test finished. Launching visualization...")
+    print("\n Test finished. Launching visualization...")
 
     exit_code = os.system("python visualize.py")
 
     if exit_code == 0:
-        print("✨ Visualization completed successfully!")
+        print(" Visualization completed successfully!")
     else:
-        print("⚠️ Visualization failed to run. Please check visualize.py.")
+        print(" Visualization failed to run. Please check visualize.py.")
