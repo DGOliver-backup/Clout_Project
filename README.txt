@@ -15,3 +15,8 @@ Open your local terminal and run the following command, replacing `<YOUR_EC2_IP>
 #### For Linux/macOS:
 ```bash
 PROXY_IP=<YOUR_EC2_IP> python workload.py
+
+#### For windows:
+$env:PROXY_IP="<YOUR_EC2_IP>"; python workload.py
+
+Note: If you want to test everything entirely locally on your own machine without AWS, simply run python workload.py and it will default to 127.0.0.1.
