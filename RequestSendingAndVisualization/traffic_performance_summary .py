@@ -4,11 +4,11 @@ import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-# 1. 定义文件名和标签
+# Config
 files = ["3.2"]
 summary_list = []
 
-# 2. 循环加载三个文件的数据
+# Load data
 for file_name in files:
     try:
         with open(f"{file_name}.json", "r") as f:
@@ -18,7 +18,7 @@ for file_name in files:
             s = content.get("stats", {})
             reqs = content.get("requests", [])
             
-            # 计算 Average Latency (仅针对成功的请求)
+            # Average Latency 
             latencies = [float(r["latency_ms"]) for r in reqs if r.get("status_code") == 200]
             avg_latency = round(np.mean(latencies), 2) if latencies else 0
             
@@ -33,13 +33,10 @@ for file_name in files:
 
 df_sum = pd.DataFrame(summary_list)
 
-# 3. 创建画布 (支持双 Y 轴)
 fig = make_subplots(specs=[[{"secondary_y": True}]])
 
-# 设置 X 轴标签：例如 "1.1 (LRU)"
 x_labels = [f"{row['Workload']} ({row['Policy']})" for _, row in df_sum.iterrows()]
 
-# 4. 添加柱状图: Hit Rate (左轴)
 fig.add_trace(go.Bar(
     x=x_labels, 
     y=df_sum["Hit Rate"], 
@@ -50,7 +47,6 @@ fig.add_trace(go.Bar(
     opacity=0.8
 ), secondary_y=False)
 
-# 5. 添加折线图: Average Latency (右轴)
 fig.add_trace(go.Scatter(
     x=x_labels, 
     y=df_sum["Avg Latency"], 
@@ -62,7 +58,6 @@ fig.add_trace(go.Scatter(
     marker=dict(size=10)
 ), secondary_y=True)
 
-# 6. 布局美化
 fig.update_layout(
         template="plotly_white",
     hovermode="x unified",
