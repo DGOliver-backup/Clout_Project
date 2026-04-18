@@ -5,11 +5,11 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import plotly.io as pio
 
-# --- 1. 基础配置：锁定 1.1 ---
-file_id = "1.1"
+# Config
+file_id = "experiment_results"
 policies = ["LRU", "LFU", "TTL"]
 policy_colors = {"LRU": "#636EFA", "LFU": "#EF553B", "TTL": "#00CC96"}
-exp_title = "Experiment 1.1-Comprehensive Report"
+exp_title = "Experiment Comprehensive Report"
 
 def generate_report_1_1():
     try:
@@ -19,7 +19,7 @@ def generate_report_1_1():
         print(f"Error: {file_id}.json not found.")
         return
 
-    # --- 模块 A: 总体统计 (Hit Rate & Avg Latency) ---
+    # Hit Rate & Avg Latency
     summary_list = []
     for p in policies:
         if p in data:
@@ -39,7 +39,7 @@ def generate_report_1_1():
                                  mode='lines+markers+text', textposition="top center", name="Avg Latency (ms)"), secondary_y=True)
     fig_sum.update_layout(title="<b>Section 1: Overall Performance Metrics</b>", template="plotly_white", height=600)
 
-    # --- 模块 B: 缓存占用 vs. 延迟 (你新加的图) ---
+    # Cache occupancy vs. latency
     fig_policy = make_subplots(
         rows=3, cols=1, shared_xaxes=True, vertical_spacing=0.08,
         subplot_titles=[f"<b>Policy: {p}</b> (Usage vs. Latency Distribution)" for p in policies],
@@ -51,13 +51,13 @@ def generate_report_1_1():
         df["UsagePct"] = df["cache_usage_float"].astype(float) * 100
         df["Latency"] = df["latency_ms"].astype(float)
         
-        # 直方图
+        # histogram
         fig_policy.add_trace(go.Histogram(
             x=df["UsagePct"], name=f"{p} Usage Dist", xbins=dict(start=0, end=100, size=5),
             marker_color=policy_colors[p], opacity=0.3, legendgroup=p, showlegend=False
         ), row=i+1, col=1, secondary_y=False)
         
-        # 延迟均值线
+        # average latency
         bins = np.arange(0, 105, 5)
         df['bin'] = pd.cut(df['UsagePct'], bins=bins, labels=bins[:-1] + 2.5)
         bin_means = df.groupby('bin', observed=True)['Latency'].mean().reset_index()
@@ -68,7 +68,7 @@ def generate_report_1_1():
         ), row=i+1, col=1, secondary_y=True)
     fig_policy.update_layout(title="<b>Section 2: Latency Sensitivity to Cache Usage</b>", height=800, template="plotly_white")
 
-    # --- 模块 C: 时序动态演变 ---
+    # Dynamic Evolution of Time Sequence
     fig_temp = make_subplots(specs=[[{"secondary_y": True}]])
     for p in policies:
         if p in data:
@@ -79,7 +79,7 @@ def generate_report_1_1():
                                           line=dict(color=policy_colors[p], width=2), legendgroup=p), secondary_y=True)
     fig_temp.update_layout(title="<b>Section 3: Temporal Performance Flow</b>", template="plotly_white", height=500, hovermode="x unified")
 
-    # --- 模块 D: 延迟直方图 (P99) ---
+    # latency histogram
     fig_dist = make_subplots(rows=3, cols=1, subplot_titles=[f"<b>{p}</b> Latency Tail" for p in policies], vertical_spacing=0.1)
     for i, p in enumerate(policies):
         if p in data:
@@ -89,7 +89,7 @@ def generate_report_1_1():
             fig_dist.add_vline(x=p99, line_dash="dash", line_color="red", annotation_text=f"P99:{int(p99)}ms", row=i+1, col=1)
     fig_dist.update_layout(title="<b>Section 4: Tail Latency Analysis (P99)</b>", height=800, template="plotly_white")
 
-    # --- 导出 HTML ---
+    # Output HTML 
     with open("integrated_report_1.1.html", "w", encoding="utf-8") as f:
         f.write(f"<html><head><meta charset='utf-8'/><title>1.1 Report</title></head>")
         f.write("<body style='background:#f0f2f5; font-family:sans-serif; padding:20px;'>")
